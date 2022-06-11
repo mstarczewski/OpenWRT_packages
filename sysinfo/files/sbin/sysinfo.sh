@@ -4,7 +4,8 @@
 
 LINE1=$(wc -L /etc/banner | awk '{print $1}')
 LINE=$((LINE1-5))
-
+LINEH=$((LINE1+25))
+echo "-"$(for i in $(seq 2 "$LINEH"); do printf "-"; done)
 hr() {
 	if [ $1 -gt 0 ]; then
 		printf "$(awk -v n=$1 'BEGIN{for(i=split("B KB MB GB TB PB",suffix);s<1;i--)s=n/(2**(10*i));printf (int(s)==s)?"%.0f%s":"%.1f%s",s,suffix[i+2]}' 2>/dev/null)"
@@ -45,14 +46,14 @@ free_mem="$(awk '/^MemFree:/ {print $2*1024}' /proc/meminfo)"
 free_mem="$((free_mem + buffers_mem + cached_mem))"
 MEM=$(echo "total: "$(hr $total_mem)", free: "$(hr $free_mem)", used: "$(( (total_mem - free_mem) * 100 / total_mem))"%")
 
-printf " | %-""$LINE""s |\n" "Machine: $MACH"
-printf " | %-""$LINE""s |\n" "Uptime: $U"
-printf " | %-""$LINE""s |\n" "Load: $L"
-printf " | %-""$LINE""s |\n" "Flash: $RFS"
-printf " | %-""$LINE""s |\n" "Memory: $MEM"
+printf "- %-""$LINE""s \n" "Machine: $MACH"
+printf "- %-""$LINE""s \n" "Uptime: $U"
+printf "- %-""$LINE""s \n" "Load: $L"
+printf "- %-""$LINE""s \n" "Flash: $RFS"
+printf "- %-""$LINE""s \n" "Memory: $MEM"
 
 if [ -e /tmp/dhcp.leases ]; then
-	printf " | %-""$LINE""s |\n" "Leases: "$(awk 'END {print NR}' /tmp/dhcp.leases)
+	printf "- %-""$LINE""s \n" "Leases: "$(awk 'END {print NR}' /tmp/dhcp.leases)
 fi
 
 SEC=$(uci show network | awk -F[\.=] '/=interface/{print $2}')
@@ -63,7 +64,7 @@ for i in $SEC; do
 	PROTO=$(uci -q get network."$i".proto)
 	IP=$(ubus call network.interface status '{"interface":"'$S'"}' 2>/dev/null | jsonfilter -q -e "@['ipv4-address'][0].address")
 	[ -z "$IP" ] && IP=$(uci -q -P /var/state get network."$S".ipaddr)
-	printf " | %-""$LINE""s |\n" "$i: $PROTO, ${IP:-"?"}"
+	printf "- %-""$LINE""s \n" "$i: $PROTO, ${IP:-"?"}"
 done
 
 SEC=$(uci -q show wireless | grep "device='radio" | cut -f2 -d. | sort)
@@ -81,24 +82,24 @@ for i in $SEC; do
 		IFNAMES=$(echo "$STATUS" | jsonfilter -e '@.*.interfaces[@.section="'"$i"'"].ifname')
 		for j in $IFNAMES; do
 			CNT=$(iw dev $j station dump 2>/dev/null | grep -c Station)
-			printf " | %-""$LINE""s |\n" "$DEV: $NET, mode: $MODE, ssid: $SSID, channel: $CHANNEL, conn: ${CNT:-0}"
+			printf "- %-""$LINE""s \n" "$DEV: $NET, mode: $MODE, ssid: $SSID, channel: $CHANNEL, conn: ${CNT:-0}"
 		done
 	fi
 done
 
-echo " "$(for i in $(seq 2 "$LINE1"); do printf "-"; done)
+echo "-"$(for i in $(seq 2 "$LINEH"); do printf "-"; done)
 
 ADDON=""
 for i in $(ls /etc/sysinfo.d/* 2>/dev/null); do
 	T=$($i)
 	if [ -n "$T" ]; then
-		printf " | %-""$LINE""s |\n" "$T"
+		printf "- %-""$LINE""s \n" "$T"
 		ADDON="1"
 	fi
 done
 
 if [ -n "$ADDON" ]; then
-	echo " "$(for i in $(seq 2 "$LINE1"); do printf "-"; done)
+	echo "-"$(for i in $(seq 2 "$LINE1"); do printf "-"; done)
 fi
 
 exit 0
